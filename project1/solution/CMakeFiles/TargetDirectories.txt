@@ -1,0 +1,7 @@
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/rebuild_cache.dir
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/edit_cache.dir
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/clean_run.dir
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/cleanf.dir
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/solution_run.dir
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/solution.dir
+/Users/pims/Desktop/workplace/CompilerProject-2020Spring-Part1/project1/solution/CMakeFiles/test1.dir

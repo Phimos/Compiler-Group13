@@ -35,7 +35,6 @@ std::string IRPrinter::print(const Expr &expr) {
     return oss.str();
 }
 
-
 std::string IRPrinter::print(const Stmt &stmt) {
     oss.clear();
     stmt.visit_stmt(this);
