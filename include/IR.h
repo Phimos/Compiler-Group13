@@ -325,6 +325,8 @@ class StringImm : public ExprNode, public std::enable_shared_from_this<StringImm
  */ 
 class Expr : public Ref<const ExprNode> {
  public:
+    bool bracket = false;
+
     Expr() : Ref<const ExprNode>() {}
     
     Expr(const Expr &other) : Ref<const ExprNode>(other.real_ptr()) {}
@@ -548,6 +550,7 @@ enum class BinaryOpType : uint8_t {
     Mod,
     And,
     Or,
+    IDiv
 };
 
 

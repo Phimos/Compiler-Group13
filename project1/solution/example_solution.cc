@@ -11,6 +11,8 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <stack>
+#include <queue>
 
 #include "IR.h"
 #include "IRMutator.h"
@@ -18,6 +20,9 @@
 
 
 using namespace Boost::Internal;
+
+Type index_type = Type::int_scalar(32);
+Type data_type = Type::float_scalar(32);
 
 // get the content between the double quotation marks example: "content"
 std::string getJSONcontent(std::string& s, int idx){
@@ -130,58 +135,191 @@ std::string getitem(std::string& str, int& idx){
     return str.substr(pos_begin, idx - pos_begin);
 }
 
-void parseVar(std::string var, std::string& name , std::vector<size_t>& shape, std::vector<std::string>& args){
+int is_op(std::string& str){
+    if(str == "=" || str == "+" || str == "-" || str == "*" || str == "/" || str == "//" || str == "%"){
+        return 1;
+    }
+    else if(str == "("){
+        return 2;
+    }
+    else if(str == ")"){
+        return 3;
+    }
+    return 0;
+}
+
+std::map<std::string, int> indexset;
+std::map<std::string, Expr> varset;
+
+std::map<std::string, BinaryOpType> op2type{
+    {"+", BinaryOpType::Add},
+    {"-", BinaryOpType::Sub},
+    {"*", BinaryOpType::Mul},
+    {"/", BinaryOpType::Div},
+    {"//", BinaryOpType::IDiv},
+    {"%", BinaryOpType::Mod}
+};
+
+
+Expr getIndex(std::string name, int bound= 0x3f3f3f3f){
+    if(indexset.count(name))
+        indexset[name] = std::min(indexset[name], bound);
+    else
+        indexset[name] = bound;
+    Expr dom = Dom::make(index_type, 0, indexset[name]);
+    
+    return Index::make(index_type, name, dom, IndexType::Spatial);
+}
+
+Expr parseItem(std::string str, int bound){
+    if('0' <= str[0] && str[0] <= '9'){
+        if(str.find('.') != std::string::npos)
+            return Expr(atof(str.c_str()));
+        else
+            return Expr(atoi(str.c_str()));
+    }
+    else{
+        return getIndex(str, bound);
+    }
+}
+
+Expr parseArg(std::string str, int shape){
+    std::vector<std::string> args = split(str, " ");
+    std::stack<Expr> argstack;
+    std::stack<std::string> opstack;
+    int cnt = 0;
+    int idx = 0;
+    std::string temp;
+    while((temp = getitem(str,idx)).length()){
+        if(is_op(temp)==1){
+            opstack.push(temp);
+        }
+        else if(is_op(temp) == 2){
+            ++cnt;
+        }
+        else if(is_op(temp) == 3){
+            --cnt;
+            argstack.top().bracket = true;
+        }
+        else{
+            if(argstack.empty()){
+                argstack.push(parseItem(temp, shape));
+            }
+            else{
+                auto newval = Binary::make(index_type, op2type[opstack.top()], argstack.top(), parseItem(temp, shape));
+                opstack.pop();
+                argstack.pop();
+                argstack.push(newval);
+            }
+        }
+    }
+    return argstack.top();
+}
+
+Expr parseVar(std::string var){
+    if('0' <= var[0] && var[0] <= '9'){
+        if(var.find('.') != std::string::npos)
+            return Expr(atof(var.c_str()));
+        else
+            return Expr(atoi(var.c_str()));
+    }
     int begin1, end1, begin2, end2;
-    std::vector<std::string> temp;
+    std::string name;
+    std::vector<size_t> shape;
+    std::vector<std::string> argnames;
     begin1 = var.find('<');
     end1 = var.find('>');
     begin2 = var.find('[');
     end2 = var.find(']');
-    if(begin1 == std::string::npos){
-        name = var;
-        return;
-    }
     name = var.substr(0, begin1);
-    temp = split(var.substr(begin1 + 1, end1 - begin1 - 1), ",");
-    for(auto val: temp)
+    for(auto val: split(var.substr(begin1 + 1, end1 - begin1 - 1), ","))
         shape.push_back(atoi(val.c_str()));
     if(begin2 != std::string::npos)
-        args = split(var.substr(begin2 + 1, end2 - begin2 - 1), ",");
-    
+        argnames = split(var.substr(begin2 + 1, end2 - begin2 - 1), ",");
+
+/*
     std::cout<<"Var string: "<<var<<std::endl;
     std::cout<<"Var name: "<<name<<std::endl;
     std::cout<<"Var shape: "<<std::endl;
     for(auto v: shape)
         std::cout<<"\t"<<v<<std::endl;
     std::cout<<"Var args: "<<std::endl;
-    for(auto v: args)
+    for(auto v: argnames)
         std::cout<<"\t"<<v<<std::endl;
+*/
+    if(shape.size() == 1 && shape[0] == 1){
+        return Var::make(data_type, name, {}, {1});
+    }
+    else{
+        std::vector<Expr> args;
+        for(int i=0;i<argnames.size();++i){
+            args.push_back(parseArg(argnames[i], shape[i]));
+        }
+        return Var::make(data_type, name, args, shape);
+    }
 }
 
-void buildIRtree(std::string filename){
-    std::string name, data_type;
-    std::vector<std::string> ins, outs, stmts;
-    if(parseJSON(filename, name, ins, outs, data_type, stmts) < 0)
-        return;
-    for(auto stmt: stmts){
-        std::string tmp;
-        int idx = 0;
-        std::cout<<stmt<<std::endl;
-        while((tmp = getitem(stmt, idx)).length()){
-            std::cout<<tmp<<std::endl;
+Stmt parseStmt(std::string stmt){
+    indexset.clear();
+    int idx = 0, cnt = 0;
+    std::string temp;
+    std::stack<Expr> valstack;
+    std::stack<std::string> opstack;
+    Expr leftval = parseVar(getitem(stmt, idx));
+    getitem(stmt,idx);
+    while((temp = getitem(stmt, idx)).length()){
+        if(is_op(temp)==1){
+            opstack.push(temp);
+        }
+        else if(is_op(temp) == 2){
+            ++cnt;
+        }
+        else if(is_op(temp) == 3){
+            --cnt;
+            valstack.top().bracket = true;
+        }
+        else{
+            if(valstack.empty()){
+                valstack.push(parseVar(temp));
+            }
+            else{
+                auto newval = Binary::make(index_type, op2type[opstack.top()], valstack.top(), parseVar(temp));
+                opstack.pop();
+                valstack.pop();
+                valstack.push(newval);
+            }
         }
     }
+
+    Stmt movestmt = Move::make(leftval, valstack.top(), MoveType::MemToMem);
+    std::vector<Expr> iters;
+    for(auto i: indexset)
+        iters.push_back(getIndex(i.first));
+    Stmt loopstmt = LoopNest::make(iters, {movestmt});
+    //IRPrinter printer;
+    //std::cout<<printer.print(loopstmt);
+    return loopstmt;
+}
+
+Group buildIRtree(std::string filename){
+    std::string name, data_type;
+    std::vector<std::string> ins, outs, exps;
+    std::vector<Stmt> stmts;
+    if(parseJSON(filename, name, ins, outs, data_type, exps) < 0)
+        return Kernel::make("error", {}, {}, {}, KernelType::CPU);
+    for(auto stmt: exps){
+        stmts.push_back(parseStmt(stmt));
+    }
+    Group kernel = Kernel::make(name, {}, {}, stmts, KernelType::CPU);
+    IRPrinter printer;
+    std::cout<<printer.print(kernel)<<std::endl;
+    return Kernel::make(name, {}, {}, stmts, KernelType::CPU);
 }
 
 int main() {
     for(int i=1;i<=10;++i){
         buildIRtree("./cases/case" + std::to_string(i) + ".json");
     }
-    std::string name;
-    std::vector<size_t> shape;
-    std::vector<std::string> args;
-    parseVar("B<2, 16, 7, 7>[n, c, p + r, q + s]", name, shape, args);
-
     std::string cheat_src =
 "// this is supposed to be generated by codegen tool\n\
 #include \"../run.h\"\n\
