@@ -166,7 +166,7 @@ Expr getIndex(std::string name, int bound= 0x3f3f3f3f){
         indexset[name] = std::min(indexset[name], bound);
     else
         indexset[name] = bound;
-    Expr dom = Dom::make(index_type, 0, indexset[name]);
+    Expr dom = Dom::make(index_type, 0, indexset[name], name);
     
     return Index::make(index_type, name, dom, IndexType::Spatial);
 }
