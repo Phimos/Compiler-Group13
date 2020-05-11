@@ -743,15 +743,17 @@ class Var : public ExprNode, public std::enable_shared_from_this<Var> {
 class Dom : public ExprNode, public std::enable_shared_from_this<Dom> {
  public:
     Expr begin;
-    Expr extent;
+    Expr extent; 
+    std::string name;
 
-    Dom(Type _type, Expr _begin, Expr _extent) : ExprNode(_type, IRNodeType::Dom), begin(_begin), extent(_extent) {}
+    Dom(Type _type, Expr _begin, Expr _extent,const std::string &_name) : 
+        ExprNode(_type, IRNodeType::Dom), begin(_begin), extent(_extent), name(_name){}
 
     Expr mutate_expr(IRMutator *mutator) const;
     void visit_node(IRVisitor *visitor) const;
     
-    static Expr make(Type t, Expr _begin, Expr _extent) {
-        return std::make_shared<const Dom>(t, _begin, _extent);
+    static Expr make(Type t, Expr _begin, Expr _extent, const std::string &_name) {
+        return std::make_shared<const Dom>(t, _begin, _extent, _name);
     }
 
     static const IRNodeType node_type_ = IRNodeType::Dom;

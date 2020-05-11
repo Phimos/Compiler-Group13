@@ -23,39 +23,39 @@ int main() {
     Type data_type = Type::float_scalar(32);
 
     // index n
-    Expr dom_n = Dom::make(index_type, 0, N);
+    Expr dom_n = Dom::make(index_type, 0, N, "n");
     Expr n = Index::make(index_type, "n", dom_n, IndexType::Spatial);
 
     // index k
-    Expr dom_k = Dom::make(index_type, 0, K);
+    Expr dom_k = Dom::make(index_type, 0, K, "k");
     Expr k = Index::make(index_type, "k", dom_k, IndexType::Spatial);
 
     // index p
-    Expr dom_p = Dom::make(index_type, 0, P);
+    Expr dom_p = Dom::make(index_type, 0, P, "p");
     Expr p = Index::make(index_type, "p", dom_p, IndexType::Spatial);
 
     // index q
-    Expr dom_q = Dom::make(index_type, 0, Q);
+    Expr dom_q = Dom::make(index_type, 0, Q, "q");
     Expr q = Index::make(index_type, "q", dom_q, IndexType::Spatial);
 
     // index c
-    Expr dom_c = Dom::make(index_type, 0, C);
+    Expr dom_c = Dom::make(index_type, 0, C, "c");
     Expr c = Index::make(index_type, "c", dom_c, IndexType::Reduce);
 
     // index h
-    Expr dom_h = Dom::make(index_type, 0, H);
+    Expr dom_h = Dom::make(index_type, 0, H, "h");
     Expr h = Index::make(index_type, "h", dom_h, IndexType::Spatial);
 
     // index w
-    Expr dom_w = Dom::make(index_type, 0, W);
+    Expr dom_w = Dom::make(index_type, 0, W, "w");
     Expr w = Index::make(index_type, "w", dom_w, IndexType::Spatial);
 
     // index r
-    Expr dom_r = Dom::make(index_type, 0, R);
+    Expr dom_r = Dom::make(index_type, 0, R, "r");
     Expr r = Index::make(index_type, "r", dom_r, IndexType::Reduce);
 
     // index s
-    Expr dom_s = Dom::make(index_type, 0, S);
+    Expr dom_s = Dom::make(index_type, 0, S, "s");
     Expr s = Index::make(index_type, "s", dom_s, IndexType::Reduce);
 
     // I

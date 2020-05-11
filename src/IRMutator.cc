@@ -125,7 +125,7 @@ Expr IRMutator::visit(Ref<const Var> op) {
 Expr IRMutator::visit(Ref<const Dom> op) {
     Expr new_begin = mutate(op->begin);
     Expr new_extent = mutate(op->extent);
-    return Dom::make(op->type(), new_begin, new_extent);
+    return Dom::make(op->type(), new_begin, new_extent,op->name);
 }
 
 
@@ -183,3 +183,4 @@ Group IRMutator::visit(Ref<const Kernel> op) {
 }  // namespace Internal
 
 }  // namespace Boost
+

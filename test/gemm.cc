@@ -17,15 +17,15 @@ int main() {
     Type data_type = Type::float_scalar(32);
 
     // index i
-    Expr dom_i = Dom::make(index_type, 0, M);
+    Expr dom_i = Dom::make(index_type, 0, M, "i");
     Expr i = Index::make(index_type, "i", dom_i, IndexType::Spatial);
 
     // index j
-    Expr dom_j = Dom::make(index_type, 0, N);
+    Expr dom_j = Dom::make(index_type, 0, N, "j");
     Expr j = Index::make(index_type, "j", dom_j, IndexType::Spatial);
 
     // index k
-    Expr dom_k = Dom::make(index_type, 0, K);
+    Expr dom_k = Dom::make(index_type, 0, K, "k");
     Expr k = Index::make(index_type, "k", dom_k, IndexType::Reduce);
 
     // A
