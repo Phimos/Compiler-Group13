@@ -149,7 +149,7 @@ int is_op(std::string& str){
 }
 
 std::map<std::string, int> indexset;
-std::map<std::string, Var> varset;
+std::map<std::string, std::vector<size_t>> varset;
 
 std::map<std::string, BinaryOpType> op2type{
     {"+", BinaryOpType::Add},
@@ -245,6 +245,7 @@ Expr parseVar(std::string var){
     if(begin2 != std::string::npos)
         argnames = split(var.substr(begin2 + 1, end2 - begin2 - 1), ",");
 
+    varset[name] = shape;
 /*
     std::cout<<"Var string: "<<var<<std::endl;
     std::cout<<"Var name: "<<name<<std::endl;
@@ -255,7 +256,7 @@ Expr parseVar(std::string var){
     for(auto v: argnames)
         std::cout<<"\t"<<v<<std::endl;
 */
-    Expr temp;
+
     if(shape.size() == 1 && shape[0] == 1){
         return Var::make(data_type, name, {}, {1});
     }
@@ -320,15 +321,30 @@ Stmt parseStmt(std::string stmt){
 
 Group buildIRtree(std::string filename){
     varset.clear();
-    std::string name, data_type;
+    std::string name, datatype;
     std::vector<std::string> ins, outs, exps;
     std::vector<Stmt> stmts;
-    if(parseJSON(filename, name, ins, outs, data_type, exps) < 0)
+    if(parseJSON(filename, name, ins, outs, datatype, exps) < 0)
         return Kernel::make("error", {}, {}, {}, KernelType::CPU);
+    
+    if(datatype == "float")
+        data_type = Type::float_scalar(32);
+    else
+        data_type = Type::int_scalar(32);
+    
     for(auto stmt: exps){
         stmts.push_back(parseStmt(stmt));
     }
-    Group kernel = Kernel::make(name, {}, {}, stmts, KernelType::CPU);
+
+    std::vector<Expr> inVar, outVar;
+    for(auto var: ins){
+        inVar.push_back(Var::make(data_type, var, {}, varset[var]));
+    }
+    for(auto var: outs){
+        outVar.push_back(Var::make(data_type, var, {}, varset[var]));
+    }
+
+    Group kernel = Kernel::make(name, inVar, outVar, stmts, KernelType::CPU);
     IRPrinter printer;
     std::cout<<printer.print(kernel)<<std::endl;
     return Kernel::make(name, {}, {}, stmts, KernelType::CPU);
