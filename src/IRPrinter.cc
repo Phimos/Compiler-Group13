@@ -75,17 +75,25 @@ void IRPrinter::visit(Ref<const StringImm> op) {
 
 
 void IRPrinter::visit(Ref<const Unary> op) {
+    if((op->a).bracket == true)
+        oss << "(";
     if (op->op_type == UnaryOpType::Neg) {
         oss << "-";
     } else if (op->op_type == UnaryOpType::Not) {
         oss << "!";
     }
     (op->a).visit_expr(this);
+    if((op->a).bracket == true)
+        oss << ")";
 }
 
 
 void IRPrinter::visit(Ref<const Binary> op) {
+    if((op->a).bracket == true)
+        oss << "(";
     (op->a).visit_expr(this);
+    if((op->a).bracket == true)
+        oss << ")";
     if (op->op_type == BinaryOpType::Add) {
         oss << " + ";
     } else if (op->op_type == BinaryOpType::Sub) {
@@ -101,7 +109,11 @@ void IRPrinter::visit(Ref<const Binary> op) {
     } else if (op->op_type == BinaryOpType::Or) {
         oss << " || ";
     }
+    if((op->b).bracket == true)
+        oss << "(";
     (op->b).visit_expr(this);
+    if((op->b).bracket == true)
+        oss << ")";
 }
 
 
@@ -174,25 +186,32 @@ void IRPrinter::visit(Ref<const Var> op) {
         oss << " (&";
         oss << op->name;
         oss << ")";
-        oss << "[";
-        for (size_t i = 0; i < op->shape.size(); ++i) {
-            oss << op->shape[i];
-            if (i < op->shape.size() - 1) {
-                oss << "][";
+        if(op->shape.size() > 1)
+        {
+            oss << "[";
+            for (size_t i = 0; i < op->shape.size(); ++i) {
+                oss << op->shape[i];
+                if (i < op->shape.size() - 1) {
+                    oss << "][";
+                }
             }
+            //oss << ">";
+            oss << "]";
         }
-        //oss << ">";
-        oss << "]";
+        
     } else {
         oss << op->name;
-        oss << "[";
-        for (size_t i = 0; i < op->args.size(); ++i) {
-            op->args[i].visit_expr(this);
-            if (i < op->args.size() - 1) {
-                oss << "][";
+        if(op->shape.size() > 1)
+        {
+            oss << "[";
+            for (size_t i = 0; i < op->args.size(); ++i) {
+                op->args[i].visit_expr(this);
+                if (i < op->args.size() - 1) {
+                    oss << "][";
+                }
             }
+            oss << "]";
         }
-        oss << "]";
     }
 }
 
@@ -336,10 +355,14 @@ void IRPrinter::visit(Ref<const Kernel> op) {
             oss << ", ";
         }
     }
-    for (size_t i = 0; i < op->outputs.size(); ++i) {
+    if(op->inputs.size() > 0)
+        oss << ", ";
+    op->outputs[0].visit_expr(this);
+    // there should be only one output
+    /*for (size_t i = 0; i < op->outputs.size(); ++i) {
         oss << ", ";
         op->outputs[i].visit_expr(this);
-    }
+    }*/
     print_arg = false;
     oss << ") {\n";
     enter();
