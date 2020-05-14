@@ -89,6 +89,7 @@ void IRPrinter::visit(Ref<const Unary> op) {
 
 
 void IRPrinter::visit(Ref<const Binary> op) {
+    oss << "(";
     if((op->a).bracket == true)
         oss << "(";
     (op->a).visit_expr(this);
@@ -114,6 +115,7 @@ void IRPrinter::visit(Ref<const Binary> op) {
     (op->b).visit_expr(this);
     if((op->b).bracket == true)
         oss << ")";
+    oss << ")";
 }
 
 
@@ -296,11 +298,17 @@ void IRPrinter::visit(Ref<const IfThenElse> op) {
     (op->true_case).visit_stmt(this);
     exit();
     print_indent();
-    oss << "} else {\n";
-    enter();
-    (op->false_case).visit_stmt(this);
-    exit();
-    print_indent();
+    /*
+    if ((op->false_case).printornot == true){
+        oss << "} else {\n";
+        enter();
+        (op->false_case).visit_stmt(this);
+        exit();
+        print_indent();
+        oss << "}\n";
+    }
+    else
+    */ 
     oss << "}\n";
 }
 

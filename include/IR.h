@@ -415,6 +415,7 @@ class Expr : public Ref<const ExprNode> {
  */ 
 class Stmt : public Ref<const StmtNode> {
  public:
+
     Stmt() : Ref<const StmtNode>() {}
 
     Stmt(const Stmt &other) : Ref<const StmtNode>(other.real_ptr()) {}

@@ -24,6 +24,9 @@ using namespace Boost::Internal;
 Type index_type = Type::int_scalar(32);
 Type data_type = Type::float_scalar(32);
 
+std::stack<Expr> con;
+bool ini = false;
+
 // get the content between the double quotation marks example: "content"
 std::string getJSONcontent(std::string& s, int idx){
     int pos_begin = -1, pos_end;
@@ -136,14 +139,17 @@ std::string getitem(std::string& str, int& idx){
 }
 
 int is_op(std::string& str){
-    if(str == "=" || str == "+" || str == "-" || str == "*" || str == "/" || str == "//" || str == "%"){
+    if(str == "+" || str == "-"){
         return 1;
     }
-    else if(str == "("){
+    else if (str == "*" || str == "/" || str == "%" || str == "//"){
         return 2;
     }
+    else if(str == "("){
+        return -1;
+    }
     else if(str == ")"){
-        return 3;
+        return -2;
     }
     return 0;
 }
@@ -189,28 +195,34 @@ Expr parseArg(std::string str, int shape){
     std::stack<std::string> opstack;
     int idx = 0;
     std::string temp;
-    bool left_bracket = false;
     while((temp = getitem(str,idx)).length()){
-        if(is_op(temp)==1){
+        if(temp == "("){
             opstack.push(temp);
         }
-        else if(is_op(temp) == 2){
-            left_bracket = true;
+        else if(temp == ")"){
+            while(opstack.top()!="("){
+                auto rightval = argstack.top();
+                argstack.pop();
+                auto leftval = argstack.top();
+                argstack.pop();
+                argstack.push(Binary::make(index_type, op2type[opstack.top()], leftval, rightval));
+                opstack.pop();                
+            }
+            opstack.pop();
         }
-        else if(is_op(temp) == 3){
-            argstack.top().bracket = true;
+        else if(is_op(temp)){
+            while((!opstack.empty()) && is_op(temp) <= is_op(opstack.top())){
+                auto rightval = argstack.top();
+                argstack.pop();
+                auto leftval = argstack.top();
+                argstack.pop();
+                argstack.push(Binary::make(index_type, op2type[opstack.top()], leftval, rightval));
+                opstack.pop();
+            }
+            opstack.push(temp);
         }
         else{
-            if(argstack.empty() || left_bracket){
-                left_bracket = false;
-                argstack.push(parseItem(temp, shape));
-            }
-            else{
-                auto newval = Binary::make(index_type, op2type[opstack.top()], argstack.top(), parseItem(temp, shape));
-                opstack.pop();
-                argstack.pop();
-                argstack.push(newval);
-            }
+            argstack.push(parseItem(temp, shape));
         }
     }
     while(!opstack.empty()){
@@ -246,16 +258,6 @@ Expr parseVar(std::string var){
         argnames = split(var.substr(begin2 + 1, end2 - begin2 - 1), ",");
 
     varset[name] = shape;
-/*
-    std::cout<<"Var string: "<<var<<std::endl;
-    std::cout<<"Var name: "<<name<<std::endl;
-    std::cout<<"Var shape: "<<std::endl;
-    for(auto v: shape)
-        std::cout<<"\t"<<v<<std::endl;
-    std::cout<<"Var args: "<<std::endl;
-    for(auto v: argnames)
-        std::cout<<"\t"<<v<<std::endl;
-*/
 
     if(shape.size() == 1 && shape[0] == 1){
         return Var::make(data_type, name, {}, {1});
@@ -264,6 +266,13 @@ Expr parseVar(std::string var){
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
             args.push_back(parseArg(argnames[i], shape[i]));
+            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr(shape[i]));
+            if (ini == false){
+                ini = true; 
+                con.push(tmp);
+            }
+            else
+                con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp));
         }
         return Var::make(data_type, name, args, shape);
     }
@@ -272,33 +281,39 @@ Expr parseVar(std::string var){
 Stmt parseStmt(std::string stmt){
     indexset.clear();
     int idx = 0;
-    bool left_bracket= false;
     std::string temp;
     std::stack<Expr> valstack;
     std::stack<std::string> opstack;
     Expr leftval = parseVar(getitem(stmt, idx));
     getitem(stmt,idx);
-    while((temp = getitem(stmt, idx)).length()){
-        if(is_op(temp)==1){
+    while((temp = getitem(stmt,idx)).length()){
+        if(temp == "("){
             opstack.push(temp);
         }
-        else if(is_op(temp) == 2){
-            left_bracket = true;
+        else if(temp == ")"){
+            while(opstack.top()!="("){
+                auto rightval = valstack.top();
+                valstack.pop();
+                auto leftval = valstack.top();
+                valstack.pop();
+                valstack.push(Binary::make(data_type, op2type[opstack.top()], leftval, rightval));
+                opstack.pop();                
+            }
+            opstack.pop();
         }
-        else if(is_op(temp) == 3){
-            valstack.top().bracket = true;
+        else if(is_op(temp)){
+            while((!opstack.empty()) && is_op(temp) <= is_op(opstack.top())){
+                auto rightval = valstack.top();
+                valstack.pop();
+                auto leftval = valstack.top();
+                valstack.pop();
+                valstack.push(Binary::make(data_type, op2type[opstack.top()], leftval, rightval));
+                opstack.pop();
+            }
+            opstack.push(temp);
         }
         else{
-            if(valstack.empty() || left_bracket){
-                left_bracket = false;
-                valstack.push(parseVar(temp));
-            }
-            else{
-                auto newval = Binary::make(index_type, op2type[opstack.top()], valstack.top(), parseVar(temp));
-                opstack.pop();
-                valstack.pop();
-                valstack.push(newval);
-            }
+            valstack.push(parseVar(temp));
         }
     }
     while(!opstack.empty()){
@@ -306,16 +321,16 @@ Stmt parseStmt(std::string stmt){
         valstack.pop();
         auto leftval = valstack.top();
         valstack.pop();
-        valstack.push(Binary::make(index_type, op2type[opstack.top()], leftval, rightval));
+        valstack.push(Binary::make(data_type, op2type[opstack.top()], leftval, rightval));
         opstack.pop();
-    }    
+    }
     Stmt movestmt = Move::make(leftval, valstack.top(), MoveType::MemToMem);
+    Stmt movestmt_invalid = Move::make(leftval, leftval, MoveType::MemToMem);
+    Stmt range = IfThenElse::make(con.top(), movestmt, movestmt_invalid);
     std::vector<Expr> iters;
     for(auto i: indexset)
         iters.push_back(getIndex(i.first));
-    Stmt loopstmt = LoopNest::make(iters, {movestmt});
-    //IRPrinter printer;
-    //std::cout<<printer.print(loopstmt);
+    Stmt loopstmt = LoopNest::make(iters, {range});
     return loopstmt;
 }
 
@@ -333,6 +348,10 @@ Group buildIRtree(std::string filename){
         data_type = Type::int_scalar(32);
     
     for(auto stmt: exps){
+        while (!con.empty()){
+            con.pop();
+        }
+        ini = false;
         stmts.push_back(parseStmt(stmt));
     }
 
