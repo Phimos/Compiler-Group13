@@ -222,7 +222,12 @@ Expr parseArg(std::string str, int shape){
             opstack.push(temp);
         }
         else{
-            argstack.push(parseItem(temp, shape));
+	    if(temp == str){
+	        argstack.push(parseItem(temp, shape));
+	    }
+	    else{
+		argstack.push(parseItem(temp, 0x3f3f3f3f));
+	    }
         }
     }
     while(!opstack.empty()){

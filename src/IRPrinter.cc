@@ -101,7 +101,7 @@ void IRPrinter::visit(Ref<const Binary> op) {
         oss << " - ";
     } else if (op->op_type == BinaryOpType::Mul) {
         oss << " * ";
-    } else if (op->op_type == BinaryOpType::Div) {
+    } else if (op->op_type == BinaryOpType::Div || op->op_type == BinaryOpType::IDiv) {
         oss << " / ";
     } else if (op->op_type == BinaryOpType::Mod) {
         oss << " % ";
