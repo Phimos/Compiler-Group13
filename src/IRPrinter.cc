@@ -357,15 +357,24 @@ void IRPrinter::visit(Ref<const Kernel> op) {
     oss << " " << op->name << "(";
     print_arg = true;
     //print_arg = false;
+    //bool notrepeat = true;
     for (size_t i = 0; i < op->inputs.size(); ++i) {
         op->inputs[i].visit_expr(this);
+        //if(op->inputs[i]->name == op->outputs[0]->name)
+        //    notrepeat = false;
         if (i < op->inputs.size() - 1) {
             oss << ", ";
         }
     }
-    if(op->inputs.size() > 0)
-        oss << ", ";
-    op->outputs[0].visit_expr(this);
+    if(op->inputs.size() == 0)
+        op->outputs[0].visit_expr(this);
+    else
+    {   
+        if(op->outputs.size() > 0){
+            oss << ", ";
+            op->outputs[0].visit_expr(this);
+        }
+    }
     // there should be only one output
     /*for (size_t i = 0; i < op->outputs.size(); ++i) {
         oss << ", ";

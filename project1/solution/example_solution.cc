@@ -361,11 +361,15 @@ Group buildIRtree(std::string filename){
     }
 
     std::vector<Expr> inVar, outVar;
+    bool notrepeat = true;
     for(auto var: ins){
         inVar.push_back(Var::make(data_type, var, {}, varset[var]));
+        if(var == outs[0])
+            notrepeat=false;
     }
     for(auto var: outs){
-        outVar.push_back(Var::make(data_type, var, {}, varset[var]));
+        if(notrepeat)
+            outVar.push_back(Var::make(data_type, var, {}, varset[var]));
     }
     return Kernel::make(name, inVar, outVar, stmts, KernelType::CPU);
 }

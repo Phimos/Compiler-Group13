@@ -1,0 +1,7 @@
+{
+    "name": "kernel_case2",
+    "ins": ["A"],
+    "outs": ["A"],
+    "data_type": "float",
+    "kernel": "A<32, 16>[i, j] = A<32, 16>[i, j] + 1;"
+}
