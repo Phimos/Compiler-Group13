@@ -1,10 +1,10 @@
 #include "../run.h"
 
-void kernel_case2(float (&A)[32][16]) {
-  for (int i = 0; i < 32; ++i){
-    for (int j = 0; j < 16; ++j){
-      if ((((i < 32 && j < 16) && i < 32) && j < 16)) {
-        A[i][j] = (A[i][j] + 1);
+void kernel_case10(float (&B)[10][10], float (&A)[8][8]) {
+  for (int i = 0; i < 8; ++i){
+    for (int j = 0; j < 8; ++j){
+      if ((((((((i < 8 && j < 8) && i < 10) && j < 10) && (i + 1) < 10) && j < 10) && (i + 2) < 10) && j < 10)) {
+        A[i][j] = (((B[i][j] + B[(i + 1)][j]) + B[(i + 2)][j]) / 3);
       }
     }
   }

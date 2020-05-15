@@ -82,6 +82,16 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
     return res;
 }
 
+std::string replace_all(std::string& str, const std::string& old_value, const std::string& new_value){
+    for (int pos = 0; pos != std::string::npos; pos += new_value.length()){
+        if ((pos = str.find(old_value, pos)) != std::string::npos)
+            str.replace(pos, old_value.length(), new_value);
+        else
+            break;
+        }
+    return str;
+}
+
 // parse the JSON file, return name, ins, outs, data_type and stmtlist
 int parseJSON(std::string jsonfile, std::string& name, std::vector<std::string>& ins, std::vector<std::string>& outs, std::string& data_type, std::vector<std::string>& stmts){
     std::ifstream infile(jsonfile);
@@ -96,15 +106,21 @@ int parseJSON(std::string jsonfile, std::string& name, std::vector<std::string>&
         getline(infile, line);
         ins = getJSONlist(line, 10);
 
+
         getline(infile, line);
         outs = getJSONlist(line, 11);
+
 
         getline(infile, line);
         data_type = getJSONcontent(line, 16);
 
+
         getline(infile, line);
         kernel = getJSONcontent(line, 13);
+        kernel = replace_all(kernel, "//", " // ");
+        kernel = replace_all(kernel, "%", " % ");
         stmts = split(kernel, ";");
+
 
         getline(infile, line);
         return 0;
