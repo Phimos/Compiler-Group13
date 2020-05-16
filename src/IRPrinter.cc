@@ -188,7 +188,7 @@ void IRPrinter::visit(Ref<const Var> op) {
         oss << " (&";
         oss << op->name;
         oss << ")";
-        if(op->shape.size() > 1)
+        if(op->shape[0] > 1)
         {
             oss << "[";
             for (size_t i = 0; i < op->shape.size(); ++i) {
@@ -203,7 +203,7 @@ void IRPrinter::visit(Ref<const Var> op) {
         
     } else {
         oss << op->name;
-        if(op->shape.size() > 1)
+        if(op->shape[0]> 1)
         {
             oss << "[";
             for (size_t i = 0; i < op->args.size(); ++i) {
