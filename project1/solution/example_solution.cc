@@ -287,7 +287,7 @@ Expr parseVar(std::string var){
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
             args.push_back(parseArg(argnames[i], shape[i]));
-            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr(shape[i]));
+            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
             if (ini == false){
                 ini = true; 
                 con.push(tmp);
