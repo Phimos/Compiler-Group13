@@ -324,15 +324,30 @@ Expr parseVar(std::string var){
     }
 }
 
-Stmt get_init(std::string grad_item) {
-    Expr grad = parseVar("d" + grad_item);
+Stmt get_init(std::string grad_name, std::string grad_item) {
+    // std::cout << grad_name << "\n";
+    static std::string tmp[] = {"ii", "jj", "kk", "ll", "qq", "pp"};
+    parseVar("d" + grad_item);
+    int grad_d = varset[grad_name].size();
+    
+    std::vector<Expr> args;
     std::vector<Expr> iters;
-    for(auto i: indexset) iters.push_back(getIndex(i.first));
-    Stmt range = Move::make(grad, Expr(0), MoveType::MemToMem);
+    for (int i = 0; i < grad_d; ++i) {
+        args.push_back(parseVar(tmp[i]));
+        
+        int bound = varset[grad_name][i];
+        Expr dom = Dom::make(index_type, 0, bound, tmp[i]);
+        Expr iter = Index::make(index_type, tmp[i], dom, IndexType::Spatial);
+        iters.push_back(iter);
+        
+        // iters.push_back(getIndex(tmp[i], varset[grad_name][i]));
+    }
+    Expr grad = Var::make(data_type, "d" + grad_name, args, varset[grad_name]);
+    Stmt range = Move::make((Expr)(grad), Expr(0), MoveType::MemToMem);
     return LoopNest::make(iters, {range});
 }
 
-Stmt parseStmt(std::string stmt, std::string grad_item, std::string grad_name){
+Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item, std::string grad_name){
     indexset.clear();
     int idx = 0;
     std::string temp;
@@ -384,6 +399,7 @@ Stmt parseStmt(std::string stmt, std::string grad_item, std::string grad_name){
         opstack.pop();
     }
 	
+	stmts.push_back(get_init(grad_name, grad_item));
 	
 	IRMutator mutator = IRMutator(grad_name, leftgrad);
 	auto tmp = mutator.mutate(valstack.top());
@@ -427,8 +443,8 @@ Group buildIRtree(std::string filename){
 			ini = false;
 	        // std::cout << get_total_grad(stmt, grad) << std::endl;
 	        std::string grad_item = get_total_grad(stmt, grad);
-	        stmts.push_back(get_init(grad_item));
-			stmts.push_back(parseStmt(stmt, grad_item, grad));
+	        // stmts.push_back(get_init(grad, grad_item));
+			stmts.push_back(parseStmt(stmts, stmt, grad_item, grad));
 			
 		}
 	}
