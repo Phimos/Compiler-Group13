@@ -49,17 +49,17 @@ Expr IRMutator::visit(Ref<const IntImm> op) {
 
 
 Expr IRMutator::visit(Ref<const UIntImm> op) {
-    return Expr(0);
+    return op;
 }
 
 
 Expr IRMutator::visit(Ref<const FloatImm> op) {
-    return Expr(0);
+    return op;
 }
 
 
 Expr IRMutator::visit(Ref<const StringImm> op) {
-    return Expr(0);
+    return op;
 }
 
 

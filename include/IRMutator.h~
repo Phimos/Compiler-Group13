@@ -37,7 +37,7 @@ class IRMutator {
 	std::string grad_val, grad_leftval;
  
 	IRMutator() : grad_val(), grad_leftval() {};
-	IRMutator(std::string val, std::string leftval) : grad_val(val), grad_leftval(leftval) {};
+	IRMutator(std::string val, std::string leftval) : grad_val(val), grad_leftval("d" + leftval) {};
 	
     Expr mutate(const Expr&);
     Stmt mutate(const Stmt&);
