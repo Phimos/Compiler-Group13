@@ -187,7 +187,7 @@ Stmt IRMutator::visit(Ref<const IfThenElse> op) {
 
 Stmt IRMutator::visit(Ref<const Move> op) {
 	Expr new_dst = mutate(op->dst);
-    Expr new_src = mutate(op->src);
+	Expr new_src = mutate(op->src);
     return Move::make(new_dst, new_src, op->move_type);
 }
 

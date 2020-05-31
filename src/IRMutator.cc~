@@ -49,17 +49,17 @@ Expr IRMutator::visit(Ref<const IntImm> op) {
 
 
 Expr IRMutator::visit(Ref<const UIntImm> op) {
-    return op;
+    return Expr(0);
 }
 
 
 Expr IRMutator::visit(Ref<const FloatImm> op) {
-    return op;
+    return Expr(0);
 }
 
 
 Expr IRMutator::visit(Ref<const StringImm> op) {
-    return op;
+    return Expr(0);
 }
 
 
@@ -187,7 +187,8 @@ Stmt IRMutator::visit(Ref<const IfThenElse> op) {
 
 Stmt IRMutator::visit(Ref<const Move> op) {
 	Expr new_dst = mutate(op->dst);
-    Expr new_src = mutate(op->src);
+	Expr tmp = mutate(op->src);
+    Expr new_src = Binary::make(new_dst->type(), BinaryOpType::Add, new_dst, tmp);
     return Move::make(new_dst, new_src, op->move_type);
 }
 

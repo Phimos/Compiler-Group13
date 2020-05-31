@@ -324,6 +324,14 @@ Expr parseVar(std::string var){
     }
 }
 
+Stmt get_init(std::string grad_item) {
+    Expr grad = parseVar("d" + grad_item);
+    std::vector<Expr> iters;
+    for(auto i: indexset) iters.push_back(getIndex(i.first));
+    Stmt range = Move::make(grad, Expr(0), MoveType::MemToMem);
+    return LoopNest::make(iters, {range});
+}
+
 Stmt parseStmt(std::string stmt, std::string grad_item, std::string grad_name){
     indexset.clear();
     int idx = 0;
@@ -381,7 +389,8 @@ Stmt parseStmt(std::string stmt, std::string grad_item, std::string grad_name){
 	auto tmp = mutator.mutate(valstack.top());
 	
 	Expr grad = parseVar("d" + grad_item);
-    Stmt movestmt = Move::make(grad, tmp, MoveType::MemToMem);
+	auto tmp2 = Binary::make(data_type, BinaryOpType::Add, grad, tmp);
+    Stmt movestmt = Move::make(grad, tmp2, MoveType::MemToMem);
     Stmt movestmt_invalid = Move::make(grad, grad, MoveType::MemToMem);
     Stmt range = IfThenElse::make(con.top(), movestmt, movestmt_invalid);
     std::vector<Expr> iters;
@@ -417,7 +426,9 @@ Group buildIRtree(std::string filename){
 			}
 			ini = false;
 	        // std::cout << get_total_grad(stmt, grad) << std::endl;
-			stmts.push_back(parseStmt(stmt, get_total_grad(stmt, grad), grad));
+	        std::string grad_item = get_total_grad(stmt, grad);
+	        stmts.push_back(get_init(grad_item));
+			stmts.push_back(parseStmt(stmt, grad_item, grad));
 			
 		}
 	}

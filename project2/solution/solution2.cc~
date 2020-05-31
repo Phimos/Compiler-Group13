@@ -324,6 +324,13 @@ Expr parseVar(std::string var){
     }
 }
 
+void get_init(Expr grad) {
+    std::vector<Expr> iters;
+    for(auto i: indexset) iters.push_back(getIndex(i.first));
+    Stmt range = Move::make(grad, Expr(0), MoveType::MemToMem);
+    stmts.push_back(LoopNest::make(iters, {range}));
+}
+
 Stmt parseStmt(std::string stmt, std::string grad_item, std::string grad_name){
     indexset.clear();
     int idx = 0;
@@ -381,7 +388,11 @@ Stmt parseStmt(std::string stmt, std::string grad_item, std::string grad_name){
 	auto tmp = mutator.mutate(valstack.top());
 	
 	Expr grad = parseVar("d" + grad_item);
-    Stmt movestmt = Move::make(grad, tmp, MoveType::MemToMem);
+	// add init
+	get_init(grad);
+	
+	auto tmp2 = Binary::make(data_type, BinaryOpType::Add, grad, tmp);
+    Stmt movestmt = Move::make(grad, tmp2, MoveType::MemToMem);
     Stmt movestmt_invalid = Move::make(grad, grad, MoveType::MemToMem);
     Stmt range = IfThenElse::make(con.top(), movestmt, movestmt_invalid);
     std::vector<Expr> iters;
@@ -416,7 +427,7 @@ Group buildIRtree(std::string filename){
 				con.pop();
 			}
 			ini = false;
-	        std::cout << get_total_grad(stmt, grad) << std::endl;
+	        // std::cout << get_total_grad(stmt, grad) << std::endl;
 			stmts.push_back(parseStmt(stmt, get_total_grad(stmt, grad), grad));
 			
 		}
@@ -444,7 +455,7 @@ int main() {
         
         if(kernel.as<Kernel>()->name == "error")
             continue;
-        std::ofstream ofile("./kernels/kernel_case" + std::to_string(i) + ".cc", std::ios::out);
+        std::ofstream ofile("./kernels/grad_case" + std::to_string(i) + ".cc", std::ios::out);
         ofile << "#include \"../run.h\"\n" << std::endl;
         IRPrinter printer;
         ofile << printer.print(kernel) << std::endl;
