@@ -484,7 +484,7 @@ Group buildIRtree(std::string filename){
         auto tmpvar = "d" + var;
         outVar.push_back(Var::make(data_type, tmpvar, {}, varset[var]));
     }
-    
+
     return Kernel::make(name, inVar, outVar, stmts, KernelType::CPU);
 }
 
@@ -496,7 +496,7 @@ int main() {
         if(kernel.as<Kernel>()->name == "error")
             continue;
         std::ofstream ofile("./kernels/grad_case" + std::to_string(i) + ".cc", std::ios::out);
-        ofile << "#include \"../run.h\"\n" << std::endl;
+        ofile << "#include \"../run2.h\"\n" << std::endl;
         IRPrinter printer;
         ofile << printer.print(kernel) << std::endl;
         ofile.close();
