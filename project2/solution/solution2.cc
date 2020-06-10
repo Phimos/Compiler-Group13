@@ -27,6 +27,7 @@ Type data_type = Type::float_scalar(32);
 
 std::stack<Expr> con;
 bool ini = false;
+std::string a = "a_tmp";
 
 std::string getJSONcontent(std::string& s, int idx){
     int pos_begin = -1, pos_end;
@@ -282,6 +283,18 @@ Expr parseArg(std::string str, int shape){
     return argstack.top();
 }
 
+bool transform(std::string str){
+    std::string temp;
+    int idx = 0;
+    temp = getitem(str, idx);
+    if (temp == str)
+        return false;
+    else{
+        a[0] = a[0] + 1;
+        return true;
+    }
+}
+
 Expr parseVar(std::string var){
     if('0' <= var[0] && var[0] <= '9'){
         if(var.find('.') != std::string::npos)
@@ -311,8 +324,18 @@ Expr parseVar(std::string var){
     else{
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
+            if (transform(argnames[i])){
+                Expr tmp1 = Compare::make(data_type, CompareOpType::EQ, parseArg(argnames[i], shape[i]), parseArg(a, shape[i]));
+                if (ini == false){
+                    ini = true; 
+                    con.push(tmp1);
+                }
+                else
+                    con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp1));
+                argnames[i] = a;
+            }
             args.push_back(parseArg(argnames[i], shape[i]));
-            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
+            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr(shape[i]));
             if (ini == false){
                 ini = true; 
                 con.push(tmp);
