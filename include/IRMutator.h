@@ -36,31 +36,33 @@ class IRMutator {
  public:
 	std::string grad_val, grad_leftval;
  
-	IRMutator() : grad_val(), grad_leftval() {};
-	IRMutator(std::string val, std::string leftval) : grad_val(val), grad_leftval(leftval) {};
-	
-    Expr mutate(const Expr&);
-    Stmt mutate(const Stmt&);
-    Group mutate(const Group&);
+	IRMutator() {}
+	IRMutator(std::string val, std::string leftval) {
+		grad_val = val;
+		grad_leftval = leftval;
+	}
+    std::pair<bool, Expr> mutate(const Expr&);
+    std::pair<bool, Stmt> mutate(const Stmt&);
+    std::pair<bool, Group> mutate(const Group&);
 
-    virtual Expr visit(Ref<const IntImm>);
-    virtual Expr visit(Ref<const UIntImm>);
-    virtual Expr visit(Ref<const FloatImm>);
-    virtual Expr visit(Ref<const StringImm>);
-    virtual Expr visit(Ref<const Unary>);
-    virtual Expr visit(Ref<const Binary>);
-    virtual Expr visit(Ref<const Select>);
-    virtual Expr visit(Ref<const Compare>);
-    virtual Expr visit(Ref<const Call>);
-    virtual Expr visit(Ref<const Var>);
-    virtual Expr visit(Ref<const Cast>);
-    virtual Expr visit(Ref<const Ramp>);
-    virtual Expr visit(Ref<const Index>);
-    virtual Expr visit(Ref<const Dom>);
-    virtual Stmt visit(Ref<const LoopNest>);
-    virtual Stmt visit(Ref<const IfThenElse>);
-    virtual Stmt visit(Ref<const Move>);
-    virtual Group visit(Ref<const Kernel>);
+    virtual std::pair<bool, Expr> visit(Ref<const IntImm>);
+    virtual std::pair<bool, Expr> visit(Ref<const UIntImm>);
+    virtual std::pair<bool, Expr> visit(Ref<const FloatImm>);
+    virtual std::pair<bool, Expr> visit(Ref<const StringImm>);
+    virtual std::pair<bool, Expr> visit(Ref<const Unary>);
+    virtual std::pair<bool, Expr> visit(Ref<const Binary>);
+    virtual std::pair<bool, Expr> visit(Ref<const Select>);
+    virtual std::pair<bool, Expr> visit(Ref<const Compare>);
+    virtual std::pair<bool, Expr> visit(Ref<const Call>);
+    virtual std::pair<bool, Expr> visit(Ref<const Var>);
+    virtual std::pair<bool, Expr> visit(Ref<const Cast>);
+    virtual std::pair<bool, Expr> visit(Ref<const Ramp>);
+    virtual std::pair<bool, Expr> visit(Ref<const Index>);
+    virtual std::pair<bool, Expr> visit(Ref<const Dom>);
+    virtual std::pair<bool, Stmt> visit(Ref<const LoopNest>);
+    virtual std::pair<bool, Stmt> visit(Ref<const IfThenElse>);
+    virtual std::pair<bool, Stmt> visit(Ref<const Move>);
+    virtual std::pair<bool, Group> visit(Ref<const Kernel>);
  private:
 };
 

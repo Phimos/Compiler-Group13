@@ -28,102 +28,131 @@ namespace Boost {
 
 namespace Internal {
 
-Expr IRMutator::mutate(const Expr &expr) {
+#define pbe std::pair<bool, Expr>
+#define mp std::make_pair
+
+std::pair<bool, Expr> IRMutator::mutate(const Expr &expr) {
 	return expr.mutate_expr(this);
 }
 
 
-Stmt IRMutator::mutate(const Stmt &stmt) {
+std::pair<bool, Stmt> IRMutator::mutate(const Stmt &stmt) {
     return stmt.mutate_stmt(this);
 }
 
 
-Group IRMutator::mutate(const Group &group) {
+std::pair<bool, Group> IRMutator::mutate(const Group &group) {
     return group.mutate_group(this);
 }
 
 
-Expr IRMutator::visit(Ref<const IntImm> op) {
-    return Expr(0);
+pbe IRMutator::visit(Ref<const IntImm> op) {
+    return mp(1, Expr(0));
 }
 
 
-Expr IRMutator::visit(Ref<const UIntImm> op) {
-    return Expr(0);
+pbe IRMutator::visit(Ref<const UIntImm> op) {
+    return mp(1, Expr(0));
 }
 
 
-Expr IRMutator::visit(Ref<const FloatImm> op) {
-    return Expr(0);
+pbe IRMutator::visit(Ref<const FloatImm> op) {
+    return mp(1, Expr(0));
 }
 
 
-Expr IRMutator::visit(Ref<const StringImm> op) {
-    return Expr(0);
+pbe IRMutator::visit(Ref<const StringImm> op) {
+    return mp(1, Expr(0));
 }
 
 
-Expr IRMutator::visit(Ref<const Unary> op) {
-    Expr new_a = mutate(op->a);
-    return Unary::make(op->type(), op->op_type, new_a);
+pbe IRMutator::visit(Ref<const Unary> op) {
+    pbe new_a = mutate(op->a);
+    if (new_a.first) return mp(1, Expr(0));
+    return mp(0, Unary::make(op->type(), op->op_type, new_a.second));
 }
 
 
-Expr IRMutator::visit(Ref<const Binary> op) {
-	if (op->op_type == BinaryOpType::Add || op->op_type == BinaryOpType::Sub) {
-	    Expr new_a = mutate(op->a);
-	    Expr new_b = mutate(op->b);
-		return Binary::make(op->type(), op->op_type, new_a, new_b);
-	} else if (op->op_type == BinaryOpType::Mul) {
-	    Expr new_ab = mutate(op->b);
-		Expr new_a = Binary::make(op->type(), op->op_type, op->a, new_ab);
-		
-		Expr new_ba = mutate(op->a);
-		Expr new_b = Binary::make(op->type(), op->op_type, new_ba, op->b);
-		return Binary::make(op->type(), BinaryOpType::Add, new_a, new_b);
+pbe IRMutator::visit(Ref<const Binary> op) {
+	if (op->op_type == BinaryOpType::Add) {
+	    // std::cout << "+\n";
+		pbe new_a = mutate(op->a);
+		pbe new_b = mutate(op->b);
+		// std::cout << "-------" << new_a.first << "\n";
+		// std::cout << "-------" << new_b.first << "\n";
+		if (new_a.first) return new_b;
+		else if (new_b.first) return new_a;
+		Expr t = Binary::make(op->type(), op->op_type, new_a.second, new_b.second);
+		return mp(0, t);
+		return mp(1, Expr(2));
 	}
-    return Binary::make(op->type(), op->op_type, op->a, op->b);
+	else if (op->op_type == BinaryOpType::Sub) {
+		pbe new_a = mutate(op->a);
+		pbe new_b = mutate(op->b);
+		if (new_b.first) return new_a;
+		return mp(0, Binary::make(op->type(), op->op_type, new_a.second, new_b.second));
+	} else if (op->op_type == BinaryOpType::Mul) {
+    	// std::cout << "*\n";
+		pbe tmp_a = mutate(op->a);
+		// std::cout << "visit b\n";
+		pbe tmp_b = mutate(op->b);
+		// std::cout<<tmp_a.first << " a\n";
+		// std::cout<<tmp_b.first << " b\n";
+		if (tmp_a.first && tmp_b.first) return mp(1, Expr(0));
+		if (tmp_b.first)
+		    return mp(0, Binary::make(op->type(), op->op_type, tmp_a.second, op->b));
+		if (tmp_a.first)
+		    return mp(0, Binary::make(op->type(), op->op_type, op->a, tmp_b.second));
+		
+		Expr new_a = Binary::make(op->type(), op->op_type, op->a, tmp_b.second);
+		Expr new_b = Binary::make(op->type(), op->op_type, tmp_a.second, op->b);
+		return mp(0, Binary::make(op->type(), BinaryOpType::Add, new_a, new_b));
+	}
+    return mp(0, Binary::make(op->type(), op->op_type, op->a, op->b));
 }
 
 
-Expr IRMutator::visit(Ref<const Compare> op) {
+pbe IRMutator::visit(Ref<const Compare> op) {
     Expr new_a = op->a;
     Expr new_b = op->b;
-    return Compare::make(op->type(), op->op_type, new_a, new_b);
+    return mp(0, Compare::make(op->type(), op->op_type, new_a, new_b));
 }
 
 
-Expr IRMutator::visit(Ref<const Select> op) {
+pbe IRMutator::visit(Ref<const Select> op) {
     // Expr new_cond = mutate(op->cond);
-    Expr new_true_value = mutate(op->true_value);
-    Expr new_false_value = mutate(op->false_value);
-    return Select::make(op->type(), op->cond, new_true_value, new_false_value);
+    pbe new_true_value = mutate(op->true_value);
+    pbe new_false_value = mutate(op->false_value);
+    return mp(0, Select::make(op->type(), op->cond, new_true_value.second,
+                              new_false_value.second));
 }
 
 
-Expr IRMutator::visit(Ref<const Call> op) {
+pbe IRMutator::visit(Ref<const Call> op) {
     // std::vector<Expr> new_args;
     /*for (auto arg : op->args) {
         new_args.push_back(mutate(arg));
     }*/
-    return Call::make(op->type(), op->args, op->func_name, op->call_type);
+    return mp(0, Call::make(op->type(), op->args, op->func_name, op->call_type));
 
 }
 
 
-Expr IRMutator::visit(Ref<const Cast> op) {
-    Expr new_val = mutate(op->val);
-    return Cast::make(op->type(), op->new_type, new_val);
+pbe IRMutator::visit(Ref<const Cast> op) {
+    pbe new_val = mutate(op->val);
+    // std::cout << "Cast\n";
+    return mp(new_val.first, Cast::make(op->type(), op->new_type, new_val.second));
 }
 
 
-Expr IRMutator::visit(Ref<const Ramp> op) {
-    Expr new_base = mutate(op->base);
-    return Ramp::make(op->type(), new_base, op->stride, op->lanes);
+pbe IRMutator::visit(Ref<const Ramp> op) {
+    pbe new_base = mutate(op->base);
+    // std::cout << "Ramp\n";
+    return mp(new_base.first, Ramp::make(op->type(), new_base.second, op->stride, op->lanes));
 }
 
 
-Expr IRMutator::visit(Ref<const Var> op) {
+pbe IRMutator::visit(Ref<const Var> op) {
 	/*
     std::vector<Expr> new_args;
     for (auto arg : op->args) {
@@ -134,26 +163,30 @@ Expr IRMutator::visit(Ref<const Var> op) {
 	// std::cout << op->name << std::endl;
 	if (op->name == grad_val) {
 	    int pos = grad_leftval.find("<");
-		return Var::make(op->type(), "d" + grad_leftval.substr(0, pos), op->args, op->shape);
+	    // std::cout<< "d" + grad_leftval.substr(0, pos) << "\n";
+		return mp(0, Var::make(op->type(), "d" + grad_leftval.substr(0, pos), op->args, op->shape));
     }
-	return Expr(0);
+    pbe t = mp(1, Expr(0));
+    // std::cout << "OK\n" << t.first << "\n";
+	return t;
 }
 
 
-Expr IRMutator::visit(Ref<const Dom> op) {
+pbe IRMutator::visit(Ref<const Dom> op) {
     // Expr new_begin = mutate(op->begin);
     // Expr new_extent = mutate(op->extent);
-    return Dom::make(op->type(), op->begin, op->extent,op->name);
+    // std::cout << "Dom\n";
+    return mp(0, Dom::make(op->type(), op->begin, op->extent, op->name));
 }
 
 
-Expr IRMutator::visit(Ref<const Index> op) {
+pbe IRMutator::visit(Ref<const Index> op) {
     // Expr new_dom = mutate(op->dom);
-    return Index::make(op->type(), op->name, op->dom, op->index_type);
+    return mp(0, Index::make(op->type(), op->name, op->dom, op->index_type));
 }
 
 
-Stmt IRMutator::visit(Ref<const LoopNest> op) {
+std::pair<bool, Stmt> IRMutator::visit(Ref<const LoopNest> op) {
 	/*
     std::vector<Expr> new_index_list;
     std::vector<Stmt> new_body_list;
@@ -167,43 +200,43 @@ Stmt IRMutator::visit(Ref<const LoopNest> op) {
 	*/
     std::vector<Stmt> new_body_list;
     for (auto body : op->body_list)
-        new_body_list.push_back(mutate(body));
-    return LoopNest::make(op->index_list, new_body_list);
+        new_body_list.push_back(mutate(body).second);
+    return mp(0, LoopNest::make(op->index_list, new_body_list));
 }
 
 
-Stmt IRMutator::visit(Ref<const IfThenElse> op) {
+std::pair<bool, Stmt> IRMutator::visit(Ref<const IfThenElse> op) {
 	/*
     Expr new_cond = mutate(op->cond);
     Stmt new_true_case = mutate(op->true_case);
     Stmt new_false_case = mutate(op->false_case);
     return IfThenElse::make(new_cond, new_true_case, new_false_case);
 	*/
-	Stmt new_true_case = mutate(op->true_case);
-    Stmt new_false_case = mutate(op->false_case);
-	return IfThenElse::make(op->cond, new_true_case, new_false_case);
+	std::pair<bool, Stmt> new_true_case = mutate(op->true_case);
+    std::pair<bool, Stmt> new_false_case = mutate(op->false_case);
+	return mp(0, IfThenElse::make(op->cond, new_true_case.second, new_false_case.second));
 }
 
 
-Stmt IRMutator::visit(Ref<const Move> op) {
-	Expr new_dst = mutate(op->dst);
-	Expr tmp = mutate(op->src);
-    Expr new_src = Binary::make(new_dst->type(), BinaryOpType::Add, new_dst, tmp);
-    return Move::make(new_dst, new_src, op->move_type);
+std::pair<bool, Stmt> IRMutator::visit(Ref<const Move> op) {
+	pbe new_dst = mutate(op->dst);
+	pbe new_src = mutate(op->src);
+    return mp(0, Move::make(new_dst.second, new_src.second, op->move_type));
 }
 
 
-Group IRMutator::visit(Ref<const Kernel> op) {
+std::pair<bool, Group> IRMutator::visit(Ref<const Kernel> op) {
     
     std::vector<Stmt> new_stmt_list;
     for (auto stmt : op->stmt_list) {
-        new_stmt_list.push_back(mutate(stmt));
+        new_stmt_list.push_back(mutate(stmt).second);
     }
-    return Kernel::make(op->name, op->inputs, op->outputs, new_stmt_list, op->kernel_type);
+    return mp(0, Kernel::make(op->name, op->inputs, op->outputs, new_stmt_list, op->kernel_type));
 }
 
 
 }  // namespace Internal
 
 }  // namespace Boost
+
 

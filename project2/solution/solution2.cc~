@@ -325,7 +325,7 @@ Expr parseVar(std::string var){
 }
 
 Stmt get_init(std::string grad_name, std::string grad_item) {
-    std::cout << grad_name << "\n";
+    // std::cout << grad_name << "\n";
     static std::string tmp[] = {"ii", "jj", "kk", "ll", "qq", "pp"};
     parseVar("d" + grad_item);
     int grad_d = varset[grad_name].size();
@@ -402,7 +402,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	stmts.push_back(get_init(grad_name, grad_item));
 	
 	IRMutator mutator = IRMutator(grad_name, leftgrad);
-	auto tmp = mutator.mutate(valstack.top());
+	auto tmp = mutator.mutate(valstack.top()).second;
 	
 	Expr grad = parseVar("d" + grad_item);
 	auto tmp2 = Binary::make(data_type, BinaryOpType::Add, grad, tmp);
@@ -435,7 +435,11 @@ Group buildIRtree(std::string filename){
     if(datatype == "float") data_type = Type::float_scalar(32);
     else data_type = Type::int_scalar(32);
     
+    //int cnt=0;
 	for (auto grad : grads) {
+        //if(cnt<5)
+        //    std::cout <<"cnt:"<<cnt<< grads[cnt]<<std::endl;
+        //cnt++;
 		for(auto stmt: exps){
 			while (!con.empty()){
 				con.pop();
@@ -449,6 +453,7 @@ Group buildIRtree(std::string filename){
 		}
 	}
 	
+    /*
     std::vector<Expr> inVar, outVar;
     bool notrepeat = true;
     for(auto var: ins){
@@ -461,18 +466,37 @@ Group buildIRtree(std::string filename){
         if(notrepeat)
             outVar.push_back(Var::make(data_type, var, {}, varset[var]));
     }
+    */
+    std::vector<Expr> inVar, outVar;
+    for(auto var1:ins){
+        for(auto var2:grads){
+            if(var1 != var2)
+                inVar.push_back(Var::make(data_type, var1, {}, varset[var1]));
+        }
+    }
+
+    for(auto var: outs){
+        auto tmpvar = "d" + var;
+        outVar.push_back(Var::make(data_type, tmpvar, {}, varset[var]));
+    }
+
+    for(auto var: grads){
+        auto tmpvar = "d" + var;
+        outVar.push_back(Var::make(data_type, tmpvar, {}, varset[var]));
+    }
+
     return Kernel::make(name, inVar, outVar, stmts, KernelType::CPU);
 }
 
 int main() {
     
-    for(int i=1;i<=10;++i){
+    for(int i=1;i<=1;++i){
         auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         
         if(kernel.as<Kernel>()->name == "error")
             continue;
         std::ofstream ofile("./kernels/grad_case" + std::to_string(i) + ".cc", std::ios::out);
-        ofile << "#include \"../run.h\"\n" << std::endl;
+        ofile << "#include \"../run2.h\"\n" << std::endl;
         IRPrinter printer;
         ofile << printer.print(kernel) << std::endl;
         ofile.close();

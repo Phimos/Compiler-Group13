@@ -498,7 +498,7 @@ class Group : public Ref<const GroupNode> {
         return this->get()->visit_node(visitor);
     }
 
-    std::pair<bool, Group> mutate_group(IRMutator *mutator) const {
+    Group mutate_group(IRMutator *mutator) const {
         return this->get()->mutate_group(mutator);
     }
 
@@ -899,7 +899,7 @@ class Kernel : public GroupNode, public std::enable_shared_from_this<Kernel> {
         GroupNode(IRNodeType::Kernel), name(_name), inputs(_inputs), outputs(_outputs),
         stmt_list(_stmt_list), kernel_type(_kernel_type) {}
 
-    std::pair<bool, Group> mutate_group(IRMutator *mutator) const;
+    Group mutate_group(IRMutator *mutator) const;
     void visit_node(IRVisitor *visitor) const;
     
     static Group make(const std::string &_name, const std::vector<Expr> &_inputs,

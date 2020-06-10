@@ -57,7 +57,7 @@ int main() {
 
     // mutator
     IRMutator mutator;
-    kernel = mutator.mutate(kernel).second;
+    kernel = mutator.mutate(kernel);
 
     // printer
     IRPrinter printer;

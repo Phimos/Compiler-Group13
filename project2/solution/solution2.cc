@@ -402,7 +402,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	stmts.push_back(get_init(grad_name, grad_item));
 	
 	IRMutator mutator = IRMutator(grad_name, leftgrad);
-	auto tmp = mutator.mutate(valstack.top());
+	auto tmp = mutator.mutate(valstack.top()).second;
 	
 	Expr grad = parseVar("d" + grad_item);
 	auto tmp2 = Binary::make(data_type, BinaryOpType::Add, grad, tmp);
