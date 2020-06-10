@@ -366,13 +366,22 @@ void IRPrinter::visit(Ref<const Kernel> op) {
             oss << ", ";
         }
     }
-    if(op->inputs.size() == 0)
+    if(op->inputs.size() == 0){
         op->outputs[0].visit_expr(this);
+        for (size_t i = 1; i < op->outputs.size(); ++i) {
+            oss << ", ";
+            op->outputs[i].visit_expr(this);
+        }
+    }   
     else
     {   
         if(op->outputs.size() > 0){
-            oss << ", ";
-            op->outputs[0].visit_expr(this);
+            //oss << ", ";
+            //op->outputs[0].visit_expr(this);
+            for (size_t i = 0; i < op->outputs.size(); ++i) {
+                oss << ", ";
+                op->outputs[i].visit_expr(this);
+            }
         }
     }
     // there should be only one output

@@ -435,7 +435,11 @@ Group buildIRtree(std::string filename){
     if(datatype == "float") data_type = Type::float_scalar(32);
     else data_type = Type::int_scalar(32);
     
+    //int cnt=0;
 	for (auto grad : grads) {
+        //if(cnt<5)
+        //    std::cout <<"cnt:"<<cnt<< grads[cnt]<<std::endl;
+        //cnt++;
 		for(auto stmt: exps){
 			while (!con.empty()){
 				con.pop();
@@ -449,6 +453,7 @@ Group buildIRtree(std::string filename){
 		}
 	}
 	
+    /*
     std::vector<Expr> inVar, outVar;
     bool notrepeat = true;
     for(auto var: ins){
@@ -461,6 +466,25 @@ Group buildIRtree(std::string filename){
         if(notrepeat)
             outVar.push_back(Var::make(data_type, var, {}, varset[var]));
     }
+    */
+    std::vector<Expr> inVar, outVar;
+    for(auto var1:ins){
+        for(auto var2:grads){
+            if(var1 != var2)
+                inVar.push_back(Var::make(data_type, var1, {}, varset[var1]));
+        }
+    }
+
+    for(auto var: outs){
+        auto tmpvar = "d" + var;
+        outVar.push_back(Var::make(data_type, tmpvar, {}, varset[var]));
+    }
+
+    for(auto var: grads){
+        auto tmpvar = "d" + var;
+        outVar.push_back(Var::make(data_type, tmpvar, {}, varset[var]));
+    }
+    
     return Kernel::make(name, inVar, outVar, stmts, KernelType::CPU);
 }
 
