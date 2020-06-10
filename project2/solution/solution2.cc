@@ -432,15 +432,31 @@ Group buildIRtree(std::string filename){
     if(parseJSON(filename, name, ins, outs, datatype, exps, grads) < 0)
         return Kernel::make("error", {}, {}, {}, KernelType::CPU);
     
+    int highorder = 0;
+    std::string str = exps[0];
+    std::string str1 = grads[0];
+    for(int idx=0;idx<str.length();++idx){
+        if(str[idx] == str1[0]){
+            for(;idx<str.length();++idx){
+                if(str[idx] == '*'){
+                    for(;idx<str.length();++idx){
+                        if(str[idx] == str1[0])
+                            highorder = 1;
+                    }
+                }
+            }
+        }
+    }
+        
     if(datatype == "float") data_type = Type::float_scalar(32);
     else data_type = Type::int_scalar(32);
     
     //int cnt=0;
-	for (auto grad : grads) {
-        //if(cnt<5)
-        //    std::cout <<"cnt:"<<cnt<< grads[cnt]<<std::endl;
-        //cnt++;
+	for (auto grad : grads) {     
 		for(auto stmt: exps){
+            /*if(cnt<5)
+                std::cout <<"cnt:"<<cnt<<":"<< stmt<<std::endl;
+            cnt++;*/
 			while (!con.empty()){
 				con.pop();
 			}
@@ -474,6 +490,9 @@ Group buildIRtree(std::string filename){
                 inVar.push_back(Var::make(data_type, var1, {}, varset[var1]));
         }
     }
+
+    if(highorder == 1)
+        inVar.push_back(Var::make(data_type, ins[0], {}, varset[ins[0]]));
 
     for(auto var: outs){
         auto tmpvar = "d" + var;
