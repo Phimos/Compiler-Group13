@@ -27,6 +27,7 @@ Type data_type = Type::float_scalar(32);
 
 std::stack<Expr> con;
 bool ini = false;
+std::string a = "a_tmp";
 
 std::string getJSONcontent(std::string& s, int idx){
     int pos_begin = -1, pos_end;
@@ -282,6 +283,21 @@ Expr parseArg(std::string str, int shape){
     return argstack.top();
 }
 
+bool transform(std::string str){
+    std::string temp;
+    int idx = 0;
+    temp = getitem(str, idx);
+    if (temp == str)
+        return false;
+    else{
+        a[0] = a[0] + 1;
+        return true;
+    }
+}
+
+std::string ttmp;
+std::vector<Expr> aargs;
+std::vector<size_t> sshape;
 Expr parseVar(std::string var){
     if('0' <= var[0] && var[0] <= '9'){
         if(var.find('.') != std::string::npos)
@@ -311,8 +327,18 @@ Expr parseVar(std::string var){
     else{
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
+            if (transform(argnames[i])){
+                Expr tmp1 = Compare::make(data_type, CompareOpType::EQ, parseArg(argnames[i], shape[i]), parseArg(a, shape[i]));
+                if (ini == false){
+                    ini = true; 
+                    con.push(tmp1);
+                }
+                else
+                    con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp1));
+                argnames[i] = a;
+            }
             args.push_back(parseArg(argnames[i], shape[i]));
-            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
+            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr(shape[i]));
             if (ini == false){
                 ini = true; 
                 con.push(tmp);
@@ -357,6 +383,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	// Expr grad = parseVar("d" + grad_name);
 	
 	std::string leftgrad = getitem(stmt, idx);
+	// ttmp = leftgrad;
     Expr leftval = parseVar(leftgrad);
     // std::cout << leftgrad << std::endl;
     getitem(stmt,idx);
@@ -402,6 +429,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	stmts.push_back(get_init(grad_name, grad_item));
 	
 	IRMutator mutator = IRMutator(grad_name, leftgrad);
+	// mutator.init(sshape, aargs);
 	auto tmp = mutator.mutate(valstack.top()).second;
 	
 	Expr grad = parseVar("d" + grad_item);
@@ -432,15 +460,31 @@ Group buildIRtree(std::string filename){
     if(parseJSON(filename, name, ins, outs, datatype, exps, grads) < 0)
         return Kernel::make("error", {}, {}, {}, KernelType::CPU);
     
+    int highorder = 0;
+    std::string str = exps[0];
+    std::string str1 = grads[0];
+    for(int idx=0;idx<str.length();++idx){
+        if(str[idx] == str1[0]){
+            for(;idx<str.length();++idx){
+                if(str[idx] == '*'){
+                    for(;idx<str.length();++idx){
+                        if(str[idx] == str1[0])
+                            highorder = 1;
+                    }
+                }
+            }
+        }
+    }
+        
     if(datatype == "float") data_type = Type::float_scalar(32);
     else data_type = Type::int_scalar(32);
     
     //int cnt=0;
-	for (auto grad : grads) {
-        //if(cnt<5)
-        //    std::cout <<"cnt:"<<cnt<< grads[cnt]<<std::endl;
-        //cnt++;
+	for (auto grad : grads) {     
 		for(auto stmt: exps){
+            /*if(cnt<5)
+                std::cout <<"cnt:"<<cnt<<":"<< stmt<<std::endl;
+            cnt++;*/
 			while (!con.empty()){
 				con.pop();
 			}
@@ -475,6 +519,9 @@ Group buildIRtree(std::string filename){
         }
     }
 
+    if(highorder == 1)
+        inVar.push_back(Var::make(data_type, ins[0], {}, varset[ins[0]]));
+
     for(auto var: outs){
         auto tmpvar = "d" + var;
         outVar.push_back(Var::make(data_type, tmpvar, {}, varset[var]));
@@ -490,7 +537,7 @@ Group buildIRtree(std::string filename){
 
 int main() {
     
-    for(int i=1;i<=1;++i){
+    for(int i=10;i<=10;++i){
         auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         
         if(kernel.as<Kernel>()->name == "error")

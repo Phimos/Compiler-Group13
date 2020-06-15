@@ -295,6 +295,9 @@ bool transform(std::string str){
     }
 }
 
+std::string ttmp;
+std::vector<Expr> aargs;
+std::vector<size_t> sshape;
 Expr parseVar(std::string var){
     if('0' <= var[0] && var[0] <= '9'){
         if(var.find('.') != std::string::npos)
@@ -380,6 +383,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	// Expr grad = parseVar("d" + grad_name);
 	
 	std::string leftgrad = getitem(stmt, idx);
+	// ttmp = leftgrad;
     Expr leftval = parseVar(leftgrad);
     // std::cout << leftgrad << std::endl;
     getitem(stmt,idx);
@@ -425,6 +429,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	stmts.push_back(get_init(grad_name, grad_item));
 	
 	IRMutator mutator = IRMutator(grad_name, leftgrad);
+	// mutator.init(sshape, aargs);
 	auto tmp = mutator.mutate(valstack.top()).second;
 	
 	Expr grad = parseVar("d" + grad_item);
@@ -486,6 +491,7 @@ Group buildIRtree(std::string filename){
 			ini = false;
 	        // std::cout << get_total_grad(stmt, grad) << std::endl;
 	        std::string grad_item = get_total_grad(stmt, grad);
+	        std::cout << grad_item <<std::endl;
 	        // stmts.push_back(get_init(grad, grad_item));
 			stmts.push_back(parseStmt(stmts, stmt, grad_item, grad));
 			
@@ -532,7 +538,7 @@ Group buildIRtree(std::string filename){
 
 int main() {
     
-    for(int i=1;i<=10;++i){
+    for(int i=10;i<=10;++i){
         auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         
         if(kernel.as<Kernel>()->name == "error")

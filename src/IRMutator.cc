@@ -74,6 +74,7 @@ pbe IRMutator::visit(Ref<const Unary> op) {
 
 
 pbe IRMutator::visit(Ref<const Binary> op) {
+    // std::cout<< "Binary\n";
 	if (op->op_type == BinaryOpType::Add) {
 	    // std::cout << "+\n";
 		pbe new_a = mutate(op->a);
@@ -84,7 +85,6 @@ pbe IRMutator::visit(Ref<const Binary> op) {
 		else if (new_b.first) return new_a;
 		Expr t = Binary::make(op->type(), op->op_type, new_a.second, new_b.second);
 		return mp(0, t);
-		return mp(1, Expr(2));
 	}
 	else if (op->op_type == BinaryOpType::Sub) {
 		pbe new_a = mutate(op->a);
@@ -107,6 +107,10 @@ pbe IRMutator::visit(Ref<const Binary> op) {
 		Expr new_a = Binary::make(op->type(), op->op_type, op->a, tmp_b.second);
 		Expr new_b = Binary::make(op->type(), op->op_type, tmp_a.second, op->b);
 		return mp(0, Binary::make(op->type(), BinaryOpType::Add, new_a, new_b));
+	} else {
+	    pbe new_a = mutate(op->a);
+		if (new_a.first) return mp(1, Expr(0));
+		return mp(0, Binary::make(op->type(), op->op_type, new_a.second, op->b));
 	}
     return mp(0, Binary::make(op->type(), op->op_type, op->a, op->b));
 }
@@ -164,7 +168,7 @@ pbe IRMutator::visit(Ref<const Var> op) {
 	if (op->name == grad_val) {
 	    int pos = grad_leftval.find("<");
 	    // std::cout<< "d" + grad_leftval.substr(0, pos) << "\n";
-		return mp(0, Var::make(op->type(), "d" + grad_leftval.substr(0, pos), op->args, op->shape));
+		return mp(0, Var::make(op->type(), "d" + grad_leftval.substr(0, pos), op->args, op->shape));//, leftval_args, leftval_shape));
     }
     pbe t = mp(1, Expr(0));
     // std::cout << "OK\n" << t.first << "\n";
