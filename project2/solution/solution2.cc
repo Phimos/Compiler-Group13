@@ -385,6 +385,9 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	std::string leftgrad = getitem(stmt, idx);
 	// ttmp = leftgrad;
     Expr leftval = parseVar(leftgrad);
+    IRPrinter printer;
+    leftgrad = printer.print(leftval);
+    
     // std::cout << leftgrad << std::endl;
     getitem(stmt,idx);
     while((temp = getitem(stmt,idx)).length()){
@@ -491,7 +494,7 @@ Group buildIRtree(std::string filename){
 			ini = false;
 	        // std::cout << get_total_grad(stmt, grad) << std::endl;
 	        std::string grad_item = get_total_grad(stmt, grad);
-	        std::cout << grad_item <<std::endl;
+	        // std::cout << grad_item <<std::endl;
 	        // stmts.push_back(get_init(grad, grad_item));
 			stmts.push_back(parseStmt(stmts, stmt, grad_item, grad));
 			
@@ -538,7 +541,7 @@ Group buildIRtree(std::string filename){
 
 int main() {
     
-    for(int i=10;i<=10;++i){
+    for(int i=1;i<=10;++i){
         auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         
         if(kernel.as<Kernel>()->name == "error")
@@ -550,7 +553,7 @@ int main() {
         ofile.close();
         // IRPrinter printer;
         // std::cout << "OK" << std::endl;
-        std::cout << printer.print(kernel) << std::endl;
+        // std::cout << printer.print(kernel) << std::endl;
     }
 
     return 0;

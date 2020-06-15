@@ -110,7 +110,7 @@ pbe IRMutator::visit(Ref<const Binary> op) {
 	} else {
 	    pbe new_a = mutate(op->a);
 		if (new_a.first) return mp(1, Expr(0));
-		return mp(0, Binary::make(op->type(), op->op_type, new_a.second, , op->b));
+		return mp(0, Binary::make(op->type(), op->op_type, new_a.second, op->b));
 	}
     return mp(0, Binary::make(op->type(), op->op_type, op->a, op->b));
 }

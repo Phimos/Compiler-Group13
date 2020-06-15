@@ -168,7 +168,8 @@ pbe IRMutator::visit(Ref<const Var> op) {
 	if (op->name == grad_val) {
 	    int pos = grad_leftval.find("<");
 	    // std::cout<< "d" + grad_leftval.substr(0, pos) << "\n";
-		return mp(0, Var::make(op->type(), "d" + grad_leftval.substr(0, pos), op->args, op->shape));//, leftval_args, leftval_shape));
+		// return mp(0, Var::make(, .substr(0, pos), op->args, op->shape));//, leftval_args, leftval_shape));
+		return mp(0, Var::make(op->type(), "d" + grad_leftval, {}, {1}));
     }
     pbe t = mp(1, Expr(0));
     // std::cout << "OK\n" << t.first << "\n";

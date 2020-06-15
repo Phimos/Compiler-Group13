@@ -35,15 +35,11 @@ namespace Internal {
 class IRMutator {
  public:
 	std::string grad_val, grad_leftval;
-	// std::vector<size_t> leftval_shape;
-	// std::vector<Expr> leftval_args;
-	// Ref<const Var> tmp;
  
 	IRMutator() {}
-	IRMutator(std::string val, std::string g_leftval) {
+	IRMutator(std::string val, std::string leftval) {
 		grad_val = val;
-		grad_leftval = g_leftval;
-		
+		grad_leftval = leftval;
 	}
 	/*
 	void init(std::vector<size_t> shape, std::vector<Expr> args) {
