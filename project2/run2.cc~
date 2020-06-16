@@ -37,6 +37,7 @@ bool test_case1(std::mt19937 &gen, std::uniform_real_distribution<float> &dis) {
     // check
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 16; ++j) {
+            
             if (std::abs(golden[i][j] - dA[i][j]) >= eps && std::abs((golden[i][j] - dA[i][j]) / golden[i][j]) >= eps) {
                 std::cout << "Wrong answer\n";
                 return false;

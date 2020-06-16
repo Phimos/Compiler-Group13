@@ -541,7 +541,7 @@ Group buildIRtree(std::string filename){
 
 int main() {
     
-    for(int i=10;i<=10;++i){
+    for(int i=1;i<=10;++i){
         auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         
         if(kernel.as<Kernel>()->name == "error")
@@ -552,8 +552,8 @@ int main() {
         ofile << printer.print(kernel) << std::endl;
         ofile.close();
         // IRPrinter printer;
-        // std::cout << "OK" << std::endl;
-        // std::cout << printer.print(kernel) << std::endl;
+        std::cout << "OK" << std::endl;
+        std::cout << printer.print(kernel) << std::endl;
     }
 
     return 0;
