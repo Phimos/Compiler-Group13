@@ -28,6 +28,8 @@ Type data_type = Type::float_scalar(32);
 std::stack<Expr> con;
 bool ini = false;
 std::string a = "a_tmp";
+std::vector<std::string> arg_tmp;
+std::vector<std::string> arg_new;
 
 std::string getJSONcontent(std::string& s, int idx){
     int pos_begin = -1, pos_end;
@@ -334,14 +336,27 @@ Expr parseVar(std::string var){
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
             if (transform(argnames[i])){
-                Expr tmp1 = Compare::make(data_type, CompareOpType::EQ, parseArg(argnames[i], shape[i]), parseArg(a, shape[i]));
-                if (ini == false){
-                    ini = true; 
-                    con.push(tmp1);
+                int s = 0;
+                for (int j = 0; j < arg_tmp.size(); j++)
+                    if (arg_tmp[j] == argnames[i]) 
+                        s = 1;
+                if (s == 0){
+                    Expr tmp1 = Compare::make(data_type, CompareOpType::EQ, parseArg(argnames[i], shape[i]), parseArg(a, shape[i]));
+                    if (ini == false){
+                        ini = true; 
+                        con.push(tmp1);
+                    }
+                    else
+                        con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp1));
+                    arg_tmp.push_back(argnames[i]);
+                    arg_new.push_back(a);
+                    argnames[i] = a;
                 }
-                else
-                    con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp1));
-                argnames[i] = a;
+                else{
+                    for (int j = 0; j < arg_tmp.size(); j++)
+                        if (arg_tmp[j] == argnames[i]) 
+                            argnames[i] = arg_new[j];
+                }
             }
             args.push_back(parseArg(argnames[i], shape[i]));
             Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
@@ -555,8 +570,10 @@ Group buildIRtree(std::string filename){
 int main() {
     
     for(int i=1;i<=10;++i){
-        auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         
+        auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
+        arg_tmp.clear();
+        arg_new.clear();
         if(kernel.as<Kernel>()->name == "error")
             continue;
         std::ofstream ofile("./kernels/grad_case" + std::to_string(i) + ".cc", std::ios::out);
