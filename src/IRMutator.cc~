@@ -72,7 +72,6 @@ pbe IRMutator::visit(Ref<const Unary> op) {
     return mp(0, Unary::make(op->type(), op->op_type, new_a.second));
 }
 
-
 pbe IRMutator::visit(Ref<const Binary> op) {
     // std::cout<< "Binary\n";
 	if (op->op_type == BinaryOpType::Add) {
@@ -93,19 +92,22 @@ pbe IRMutator::visit(Ref<const Binary> op) {
 		return mp(0, Binary::make(op->type(), op->op_type, new_a.second, new_b.second));
 	} else if (op->op_type == BinaryOpType::Mul) {
     	// std::cout << "*\n";
+    	Expr a = op->a, b = op->b;
 		pbe tmp_a = mutate(op->a);
 		// std::cout << "visit b\n";
 		pbe tmp_b = mutate(op->b);
 		// std::cout<<tmp_a.first << " a\n";
 		// std::cout<<tmp_b.first << " b\n";
+		del(a);
+		del(b);
 		if (tmp_a.first && tmp_b.first) return mp(1, Expr(0));
 		if (tmp_b.first)
-		    return mp(0, Binary::make(op->type(), op->op_type, tmp_a.second, op->b));
+		    return mp(0, Binary::make(op->type(), op->op_type, tmp_a.second, b));
 		if (tmp_a.first)
-		    return mp(0, Binary::make(op->type(), op->op_type, op->a, tmp_b.second));
+		    return mp(0, Binary::make(op->type(), op->op_type, a, tmp_b.second));
 		
-		Expr new_a = Binary::make(op->type(), op->op_type, op->a, tmp_b.second);
-		Expr new_b = Binary::make(op->type(), op->op_type, tmp_a.second, op->b);
+		Expr new_a = Binary::make(op->type(), op->op_type, a, tmp_b.second);
+		Expr new_b = Binary::make(op->type(), op->op_type, tmp_a.second, b);
 		return mp(0, Binary::make(op->type(), BinaryOpType::Add, new_a, new_b));
 	} else {
 	    pbe new_a = mutate(op->a);
@@ -168,7 +170,8 @@ pbe IRMutator::visit(Ref<const Var> op) {
 	if (op->name == grad_val) {
 	    int pos = grad_leftval.find("<");
 	    // std::cout<< "d" + grad_leftval.substr(0, pos) << "\n";
-		return mp(0, Var::make(op->type(), "d" + grad_leftval.substr(0, pos), op->args, op->shape));//, leftval_args, leftval_shape));
+		// return mp(0, Var::make(, .substr(0, pos), op->args, op->shape));//, leftval_args, leftval_shape));
+		return mp(0, Var::make(op->type(), "d" + grad_leftval, {}, {1}));
     }
     pbe t = mp(1, Expr(0));
     // std::cout << "OK\n" << t.first << "\n";

@@ -295,9 +295,10 @@ bool transform(std::string str){
     }
 }
 
-std::string ttmp;
-std::vector<Expr> aargs;
-std::vector<size_t> sshape;
+std::map<std::string, char> name_id, empty_map1;
+std::string grad_name;
+std::map<std::string, std::string> final_var, empty_map2;
+
 Expr parseVar(std::string var){
     if('0' <= var[0] && var[0] <= '9'){
         if(var.find('.') != std::string::npos)
@@ -318,13 +319,18 @@ Expr parseVar(std::string var){
         shape.push_back(atoi(val.c_str()));
     if(begin2 != std::string::npos)
         argnames = split(var.substr(begin2 + 1, end2 - begin2 - 1), ",");
-
+    
     varset[name] = shape;
+    if (name == grad_name) {
+        if (name_id[name] == 0) name_id[name] = '0';
+        else name_id[name] = name_id[name] + 1;
+        name = name + "-" + name_id[name];
+        final_var[name] = var;
+    }
 
     if(shape.size() == 1 && shape[0] == 1){
         return Var::make(data_type, name, {}, {1});
-    }
-    else{
+    } else {
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
             if (transform(argnames[i])){
@@ -338,7 +344,7 @@ Expr parseVar(std::string var){
                 argnames[i] = a;
             }
             args.push_back(parseArg(argnames[i], shape[i]));
-            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr(shape[i]));
+            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
             if (ini == false){
                 ini = true; 
                 con.push(tmp);
@@ -351,7 +357,6 @@ Expr parseVar(std::string var){
 }
 
 Stmt get_init(std::string grad_name, std::string grad_item) {
-    // std::cout << grad_name << "\n";
     static std::string tmp[] = {"ii", "jj", "kk", "ll", "qq", "pp"};
     parseVar("d" + grad_item);
     int grad_d = varset[grad_name].size();
@@ -366,14 +371,16 @@ Stmt get_init(std::string grad_name, std::string grad_item) {
         Expr iter = Index::make(index_type, tmp[i], dom, IndexType::Spatial);
         iters.push_back(iter);
         
-        // iters.push_back(getIndex(tmp[i], varset[grad_name][i]));
     }
     Expr grad = Var::make(data_type, "d" + grad_name, args, varset[grad_name]);
     Stmt range = Move::make((Expr)(grad), Expr(0), MoveType::MemToMem);
     return LoopNest::make(iters, {range});
 }
 
-Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item, std::string grad_name){
+void parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item){
+    name_id.swap(empty_map1);
+    final_var.swap(empty_map2);
+    
     indexset.clear();
     int idx = 0;
     std::string temp;
@@ -385,6 +392,7 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	std::string leftgrad = getitem(stmt, idx);
 	// ttmp = leftgrad;
     Expr leftval = parseVar(leftgrad);
+    
     IRPrinter printer;
     leftgrad = printer.print(leftval);
     
@@ -431,20 +439,23 @@ Stmt parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item
 	
 	stmts.push_back(get_init(grad_name, grad_item));
 	
-	IRMutator mutator = IRMutator(grad_name, leftgrad);
-	// mutator.init(sshape, aargs);
-	auto tmp = mutator.mutate(valstack.top()).second;
 	
-	Expr grad = parseVar("d" + grad_item);
-	auto tmp2 = Binary::make(data_type, BinaryOpType::Add, grad, tmp);
-    Stmt movestmt = Move::make(grad, tmp2, MoveType::MemToMem);
-    Stmt movestmt_invalid = Move::make(grad, grad, MoveType::MemToMem);
-    Stmt range = IfThenElse::make(con.top(), movestmt, movestmt_invalid);
-    std::vector<Expr> iters;
-    for(auto i: indexset)
-        iters.push_back(getIndex(i.first));
-    Stmt loopstmt = LoopNest::make(iters, {range});
-    return loopstmt;
+	// mutator.init(sshape, aargs);
+	for (char i = '0'; i <= name_id[grad_name]; ++i) {
+	    IRMutator mutator = IRMutator(grad_name + "-" + i, leftgrad);
+	    auto tmp = mutator.mutate(valstack.top()).second;
+	    // std::cout << "d" + final_var[grad_name + "-" + i] << "\n";
+    	Expr grad = parseVar("d" + final_var[grad_name + "-" + i]);
+	    auto tmp2 = Binary::make(data_type, BinaryOpType::Add, grad, tmp);
+        Stmt movestmt = Move::make(grad, tmp2, MoveType::MemToMem);
+        Stmt movestmt_invalid = Move::make(grad, grad, MoveType::MemToMem);
+        Stmt range = IfThenElse::make(con.top(), movestmt, movestmt_invalid);
+        
+        std::vector<Expr> iters;
+        for(auto i: indexset) iters.push_back(getIndex(i.first));
+        Stmt loopstmt = LoopNest::make(iters, {range});
+        stmts.push_back(loopstmt);
+	}
 }
 
 std::string get_total_grad(std::string &s, std::string &ss) {
@@ -496,8 +507,8 @@ Group buildIRtree(std::string filename){
 	        std::string grad_item = get_total_grad(stmt, grad);
 	        // std::cout << grad_item <<std::endl;
 	        // stmts.push_back(get_init(grad, grad_item));
-			stmts.push_back(parseStmt(stmts, stmt, grad_item, grad));
-			
+	        grad_name = grad;
+			parseStmt(stmts, stmt, grad_item);
 		}
 	}
 	
@@ -552,8 +563,8 @@ int main() {
         ofile << printer.print(kernel) << std::endl;
         ofile.close();
         // IRPrinter printer;
-        std::cout << "OK" << std::endl;
-        std::cout << printer.print(kernel) << std::endl;
+        // std::cout << "OK" << std::endl;
+        // std::cout << printer.print(kernel) << std::endl;
     }
 
     return 0;

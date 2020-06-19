@@ -37,9 +37,9 @@ class IRMutator {
 	std::string grad_val, grad_leftval;
  
 	IRMutator() {}
-	IRMutator(std::string val, std::string g_leftval) {
+	IRMutator(std::string val, std::string leftval) {
 		grad_val = val;
-		grad_leftval = g_leftval;
+		grad_leftval = leftval;
 	}
 	/*
 	void init(std::vector<size_t> shape, std::vector<Expr> args) {

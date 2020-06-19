@@ -72,7 +72,6 @@ pbe IRMutator::visit(Ref<const Unary> op) {
     return mp(0, Unary::make(op->type(), op->op_type, new_a.second));
 }
 
-
 pbe IRMutator::visit(Ref<const Binary> op) {
     // std::cout<< "Binary\n";
 	if (op->op_type == BinaryOpType::Add) {
@@ -93,6 +92,7 @@ pbe IRMutator::visit(Ref<const Binary> op) {
 		return mp(0, Binary::make(op->type(), op->op_type, new_a.second, new_b.second));
 	} else if (op->op_type == BinaryOpType::Mul) {
     	// std::cout << "*\n";
+    	Expr a = op->a, b = op->b;
 		pbe tmp_a = mutate(op->a);
 		// std::cout << "visit b\n";
 		pbe tmp_b = mutate(op->b);
@@ -100,12 +100,12 @@ pbe IRMutator::visit(Ref<const Binary> op) {
 		// std::cout<<tmp_b.first << " b\n";
 		if (tmp_a.first && tmp_b.first) return mp(1, Expr(0));
 		if (tmp_b.first)
-		    return mp(0, Binary::make(op->type(), op->op_type, tmp_a.second, op->b));
+		    return mp(0, Binary::make(op->type(), op->op_type, tmp_a.second, b));
 		if (tmp_a.first)
-		    return mp(0, Binary::make(op->type(), op->op_type, op->a, tmp_b.second));
+		    return mp(0, Binary::make(op->type(), op->op_type, a, tmp_b.second));
 		
-		Expr new_a = Binary::make(op->type(), op->op_type, op->a, tmp_b.second);
-		Expr new_b = Binary::make(op->type(), op->op_type, tmp_a.second, op->b);
+		Expr new_a = Binary::make(op->type(), op->op_type, a, tmp_b.second);
+		Expr new_b = Binary::make(op->type(), op->op_type, tmp_a.second, b);
 		return mp(0, Binary::make(op->type(), BinaryOpType::Add, new_a, new_b));
 	} else {
 	    pbe new_a = mutate(op->a);
