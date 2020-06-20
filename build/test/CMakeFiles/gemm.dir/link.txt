@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11 -faligned-new -O2 -Wall -fPIC   -rdynamic CMakeFiles/gemm.dir/gemm.cc.o  -o gemm -Wl,-rpath,/home/huxinyu/Compiler-Group13/build ../libboost.so -ldl 

@@ -1,0 +1,5 @@
+# Hashes of file build rules.
+a22b534d24f383e3f02808bc58da4381 project1/CMakeFiles/clean_run
+64cc9bd6125c04057194cb38a979d3e0 project1/CMakeFiles/solution_run
+0aadec708f592df54894a518cd67be3f project2/CMakeFiles/clean_run2
+bf386f89a3023596ea37411321abf89f project2/CMakeFiles/solution_run2
