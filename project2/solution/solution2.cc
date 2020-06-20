@@ -30,6 +30,7 @@ bool ini = false;
 std::string a = "a_tmp";
 std::vector<std::string> arg_tmp;
 std::vector<std::string> arg_new;
+std::vector<std::pair<std::string, size_t>> constraint;
 
 std::string getJSONcontent(std::string& s, int idx){
     int pos_begin = -1, pos_end;
@@ -336,11 +337,11 @@ Expr parseVar(std::string var){
         std::vector<Expr> args;
         for(int i=0;i<argnames.size();++i){
             if (transform(argnames[i])){
-                int s = 0;
+                bool s = true;
                 for (int j = 0; j < arg_tmp.size(); j++)
                     if (arg_tmp[j] == argnames[i]) 
-                        s = 1;
-                if (s == 0){
+                        s = false;
+                if (s == true){
                     Expr tmp1 = Compare::make(data_type, CompareOpType::EQ, parseArg(argnames[i], shape[i]), parseArg(a, shape[i]));
                     if (ini == false){
                         ini = true; 
@@ -359,13 +360,20 @@ Expr parseVar(std::string var){
                 }
             }
             args.push_back(parseArg(argnames[i], shape[i]));
-            Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
-            if (ini == false){
-                ini = true; 
-                con.push(tmp);
+            bool s = true;
+            for (int j = 0; j < constraint.size(); j++)
+                if (constraint[j].first == argnames[i] && constraint[j].second == shape[i])
+                    s = false;
+            if (s == true){
+                constraint.push_back(std::make_pair(argnames[i], shape[i]));
+                Expr tmp = Compare::make(data_type, CompareOpType::LT, parseArg(argnames[i], shape[i]), Expr((int)shape[i]));
+                if (ini == false){
+                    ini = true; 
+                    con.push(tmp);
+                }
+                else
+                    con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp));
             }
-            else
-                con.push(Binary::make(data_type, BinaryOpType::And, con.top(), tmp));
         }
         return Var::make(data_type, name, args, shape);
     }
@@ -393,6 +401,7 @@ Stmt get_init(std::string grad_name, std::string grad_item) {
 }
 
 void parseStmt(std::vector<Stmt>& stmts, std::string stmt, std::string grad_item){
+    constraint.clear();
     std::map<std::string, char> empty_map1;
     std::map<std::string, std::string> empty_map2;
     name_id.swap(empty_map1);
@@ -570,10 +579,10 @@ Group buildIRtree(std::string filename){
 int main() {
     
     for(int i=1;i<=10;++i){
-        
         auto kernel =  buildIRtree("./cases/case" + std::to_string(i) + ".json");
         arg_tmp.clear();
         arg_new.clear();
+        constraint.clear();
         if(kernel.as<Kernel>()->name == "error")
             continue;
         std::ofstream ofile("./kernels/grad_case" + std::to_string(i) + ".cc", std::ios::out);
