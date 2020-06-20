@@ -1,1 +1,0 @@
-/usr/bin/c++  -std=c++11 -faligned-new -O2 -Wall -fPIC   -rdynamic CMakeFiles/solution2.dir/solution/solution2.cc.o  -o solution2 -Wl,-rpath,/home/huxinyu/Compiler-Group13/build ../libboost.so -ldl 
